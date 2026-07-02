@@ -1,7 +1,5 @@
 using UnityEngine;
 
-// Pasang script ini ke GameObject "Main Camera".
-// Isi field "Target" dengan karakter yang mau diikuti (misalnya "ManUpdate2").
 public class ThirdPersonCamera : MonoBehaviour
 {
     [Header("ManUpdate2")]
@@ -20,12 +18,29 @@ public class ThirdPersonCamera : MonoBehaviour
     public float maxVerticalAngle = 60f;
 
     [Header("Collision")]
-    [Tooltip("Supaya kamera tidak menembus tembok/lantai")]
     public float collisionOffset = 0.3f;
     public LayerMask collisionMask = ~0;
 
     private float yaw;
     private float pitch = 15f;
+
+    void Awake()
+    {
+        // Auto-find player kalau referensi hilang (misal setelah ganti scene)
+        if (ManUpdate2 == null)
+        {
+            GameObject p = GameObject.FindGameObjectWithTag("Player");
+            if (p != null)
+            {
+                ManUpdate2 = p.transform;
+                Debug.Log("ThirdPersonCamera: Player ditemukan otomatis — " + p.name);
+            }
+            else
+            {
+                Debug.LogWarning("ThirdPersonCamera: Player tidak ditemukan! Pastikan tag 'Player' sudah di-set.");
+            }
+        }
+    }
 
     void Start()
     {
@@ -38,9 +53,14 @@ public class ThirdPersonCamera : MonoBehaviour
 
     void Update()
     {
-        if (ManUpdate2 == null) return;
+        if (ManUpdate2 == null)
+        {
+            // Coba cari lagi kalau masih null
+            GameObject p = GameObject.FindGameObjectWithTag("Player");
+            if (p != null) ManUpdate2 = p.transform;
+            return;
+        }
 
-        // Tekan Escape buat lepas/kunci cursor lagi (enak waktu testing)
         if (Input.GetKeyDown(KeyCode.Escape))
         {
             bool isLocked = Cursor.lockState == CursorLockMode.Locked;
@@ -65,7 +85,6 @@ public class ThirdPersonCamera : MonoBehaviour
 
         float finalDistance = distance;
 
-        // Cegah kamera nembus dinding/lantai
         if (Physics.Linecast(focusPoint, focusPoint - rotation * Vector3.forward * distance, out RaycastHit hit, collisionMask))
         {
             finalDistance = Mathf.Clamp(hit.distance - collisionOffset, minDistance, distance);

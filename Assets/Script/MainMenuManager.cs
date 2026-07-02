@@ -37,7 +37,7 @@ public class MainMenuManager : MonoBehaviour
     {
         Debug.Log("Play New Game ditekan");
         PlayerPrefs.SetInt("HasSaveGame", 1); // contoh marking save
-        SceneManager.LoadScene(gameSceneName);
+        SceneManager.LoadScene("Day 1");
     }
 
     public void OnLoadGame()
