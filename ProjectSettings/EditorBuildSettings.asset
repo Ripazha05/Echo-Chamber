@@ -14,4 +14,10 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/DayScene_Indoor.unity
     guid: d8926a11587ba3d4291250afa6f2e11e
+  - enabled: 1
+    path: Assets/Scenes/Day 2.unity
+    guid: fa81a737c3951284ead58ec187c2467e
+  - enabled: 1
+    path: Assets/Scenes/Interior_Kelas_Baru_day2.unity
+    guid: 838b0f2cb24555947a30233cfbea78f7
   m_configObjects: {}
