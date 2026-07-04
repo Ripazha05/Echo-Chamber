@@ -7,9 +7,9 @@ public class NPCInteraction : MonoBehaviour
     [SerializeField] private KeyCode interactKey = KeyCode.E;
 
     [Header("UI Reference")]
-    // Tarik objek 'GitaDialogueManager' ke kolom ini di Inspector Gita
+    // Hubungkan dengan objek GitaDialogueManager di Hierarchy
     public AutoStartDialogue scriptDialogGita; 
-    [SerializeField] private GameObject promptUI; 
+    [SerializeField] private GameObject promptUI; // Teks "Tekan E untuk bicara" (opsional)
 
     private Transform player;
     private bool playerInRange = false;
@@ -26,6 +26,7 @@ public class NPCInteraction : MonoBehaviour
     {
         if (player == null) return;
 
+        // Hitung jarak manual (identik dengan sistem pintumu)
         float distance = Vector3.Distance(transform.position, player.position);
 
         if (distance <= interactionRange)
@@ -36,12 +37,12 @@ public class NPCInteraction : MonoBehaviour
                 if (promptUI != null) promptUI.SetActive(true);
             }
 
-            // Jika tekan E dan panel dialog sedang mati, panggil dialog Gita
+            // Jika tekan E dan panel dialog sedang tidak terbuka, panggil dialog Gita
             if (Input.GetKeyDown(interactKey) && scriptDialogGita != null && !scriptDialogGita.panelDialog.activeSelf)
             {
                 if (promptUI != null) promptUI.SetActive(false);
                 
-                // Memanggil fungsi MulaiDialog() khusus milik Gita
+                // Memanggil fungsi MulaiDialog() milik GitaDialogueManager
                 scriptDialogGita.MulaiDialog(); 
             }
         }
@@ -51,9 +52,18 @@ public class NPCInteraction : MonoBehaviour
             {
                 playerInRange = false;
                 if (promptUI != null) promptUI.SetActive(false);
+                
+                // Tutup paksa dialog jika pemain kabur di tengah obrolan
                 if (scriptDialogGita != null && scriptDialogGita.panelDialog != null) 
                     scriptDialogGita.panelDialog.SetActive(false);
             }
         }
+    }
+
+    // Menggambar lingkaran jarak di Scene View biar gampang debugging
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, interactionRange);
     }
 }

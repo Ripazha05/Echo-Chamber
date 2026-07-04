@@ -14,4 +14,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/DayScene_Indoor.unity
     guid: d8926a11587ba3d4291250afa6f2e11e
+  - enabled: 1
+    path: Assets/Scenes/Day 3.unity
+    guid: b6492114573409040b81b01c063c7288
   m_configObjects: {}

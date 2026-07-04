@@ -1,6 +1,7 @@
 using UnityEngine;
 using TMPro;
 using System.Collections;
+using UnityEngine.SceneManagement; // WAJIB: Untuk memicu perpindahan scene
 
 public class GameStoryManager : MonoBehaviour
 {
@@ -8,6 +9,11 @@ public class GameStoryManager : MonoBehaviour
     public GameObject panelDialog;
     public TextMeshProUGUI teksDialog;
     
+    // VARIABEL BARU: Untuk menampilkan Name Tag karakter di atas panel dialog
+    [Header("UI Name Tag Settings")]
+    public TextMeshProUGUI komponenTeksNama; 
+    public string namaPembicara; 
+
     [Header("Isi Dialog")]
     [TextArea(2, 5)]
     public string[] daftarDialog;
@@ -37,6 +43,12 @@ public class GameStoryManager : MonoBehaviour
     private bool cutsceneOpeningSelesai = false; 
     private bool sedangLihatHP = false;
 
+    // VARIABEL BARU: Pengaturan transisi otomatis ke hari esok (jika dibutuhkan)
+    [Header("Next Day Transition")]
+    public bool pindahSceneSetelahSelesai = false; 
+    public string namaSceneTujuan; 
+    public GameObject panelFade;
+
     void Start()
     {
         // Setup text quest di awal (masih tersembunyi)
@@ -51,6 +63,8 @@ public class GameStoryManager : MonoBehaviour
         if (kameraOpeningCutscene != null) kameraOpeningCutscene.SetActive(true);
         if (kameraGameplay != null) kameraGameplay.SetActive(false);
         if (kameraFPSHP != null) kameraFPSHP.SetActive(false);
+
+        if (panelFade != null) panelFade.SetActive(false);
 
         // Mulai hitung mundur nunggu kamera opening selesai bergerak
         StartCoroutine(TungguOpeningCutscene());
@@ -90,6 +104,25 @@ public class GameStoryManager : MonoBehaviour
         if (daftarDialog.Length > 0 && indeksDialog < daftarDialog.Length)
         {
             teksDialog.text = daftarDialog[indeksDialog];
+            
+            // PERBAIKAN: Update kotak nama setiap kali kalimat ditampilkan
+            UpdateTeksNama();
+        }
+    }
+
+    // FUNGSI BARU: Untuk mengatur kapan nama muncul atau kosong (jika berupa narasi)
+    void UpdateTeksNama()
+    {
+        if (komponenTeksNama != null)
+        {
+            if (!string.IsNullOrEmpty(namaPembicara))
+            {
+                komponenTeksNama.text = namaPembicara;
+            }
+            else
+            {
+                komponenTeksNama.text = ""; // Kosongkan jika merupakan teks batin/narasi
+            }
         }
     }
 
@@ -115,15 +148,19 @@ public class GameStoryManager : MonoBehaviour
             // Selesai semua dialog -> Munculkan Quest
             panelDialog.SetActive(false);
             panelQuest.SetActive(true);
+
+            // PERBAIKAN: Jika dicentang ganti scene setelah dialog beres, panggil transisinya
+            if (pindahSceneSetelahSelesai)
+            {
+                MulaiTransisiKeHariEsok();
+            }
         }
     }
 
     IEnumerator MainkanSuaraDanCutsceneHP()
     {
-        // 1. Matikan dialog bawah sebentar biar fokus sinematik
         panelDialog.SetActive(false);
 
-        // 2. Bunyikan suara ting-ting 2x
         if (audioSource != null && suaraNotifikasi != null)
         {
             audioSource.PlayOneShot(suaraNotifikasi);
@@ -131,11 +168,9 @@ public class GameStoryManager : MonoBehaviour
             audioSource.PlayOneShot(suaraNotifikasi);
         }
 
-        // 3. Pindah kamera ke First Person HP
         if (kameraGameplay != null) kameraGameplay.SetActive(false);
         if (kameraFPSHP != null) kameraFPSHP.SetActive(true);
 
-        // 4. Pemicu Animasi HP Naik dari bawah layar
         Animator fpsCamAnimator = kameraFPSHP.GetComponent<Animator>();
         if (fpsCamAnimator != null)
         {
@@ -149,12 +184,29 @@ public class GameStoryManager : MonoBehaviour
     {
         sedangLihatHP = false;
 
-        // Kembalikan ke kamera Third Person normal
         if (kameraFPSHP != null) kameraFPSHP.SetActive(false);
         if (kameraGameplay != null) kameraGameplay.SetActive(true);
 
-        // Munculkan kembali dialog dan update teksnya
         panelDialog.SetActive(true);
         TampilkanKalimat(); 
+    }
+
+    // FUNGSI BARU: Mengurus animasi fade sebelum ganti scene
+    void MulaiTransisiKeHariEsok()
+    {
+        if (panelFade != null)
+        {
+            panelFade.SetActive(true); 
+            Invoke("GantiScene", 2f); // Beri waktu 2 detik agar efek hitam selesai render
+        }
+        else
+        {
+            GantiScene(); 
+        }
+    }
+
+    void GantiScene()
+    {
+        SceneManager.LoadScene(namaSceneTujuan);
     }
 }

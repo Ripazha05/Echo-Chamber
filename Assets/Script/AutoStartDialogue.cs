@@ -1,46 +1,78 @@
 using UnityEngine;
 using TMPro;
-using UnityEngine.SceneManagement; // Wajib untuk pindah scene
+using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class AutoStartDialogue : MonoBehaviour
 {
-    public GameObject panelDialog; 
-    public TMP_Text komponenTeksDialog; 
+    // Membuat struktur data agar setiap kalimat punya nama pembicara sendiri
+    [System.Serializable]
+    public struct DataDialog
+    {
+        public string namaKarakter; // Nama yang akan muncul di kotak nama
+        [TextArea(2, 4)] public string kalimatDialog; // Isi omongannya
+    }
 
-    [Header("Trigger Settings")]
-    public bool jalanOtomatisDiAwal = false; 
+    [Header("UI Dialog Settings")]
+    public GameObject panelDialog;
+    public TextMeshProUGUI komponenTeksDialog;
 
-    [Header("Scene Transition Settings")]
-    public bool pindahSceneSetelahSelesai = false; // Centang ini khusus di dialog terakhir Gita
-    public string namaSceneTujuan; // Ketik nama scene besok (misal: Day 2)
-    public GameObject panelFade; // Tarik objek UI Fade kamu ke sini
+    [Header("UI Name Tag Settings")]
+    public TextMeshProUGUI komponenTeksNama; // Seret teks UI komponen Nama ke sini
 
-    [TextArea(2, 5)] 
-    public string[] daftarDialog; 
+    [Header("Daftar Kalimat Dialog (Baru)")]
+    public DataDialog[] daftarDialogSistemBaru; 
+    private int indeksDialog = 0;
 
-    private int indexSekarang = 0; 
-    private bool sedangAktifMembaca = false; 
+    [Header("Sistem Quest Baru (Selesai Dialog)")]
+    public GameObject panelQuest;
+    public TextMeshProUGUI questTitleText;
+    public TextMeshProUGUI questDescriptionText;
+    
+    [Space(5)]
+    public string judulQuestBaru;
+    [TextArea(2, 3)]
+    public string deskripsiQuestBaru;
+
+    [Header("Audio Efek Notifikasi Quest")]
+    public AudioSource audioSource;
+    public AudioClip suaraNotifikasi;
+
+    [Header("Pengaturan Transisi Scene (Hari Esok)")]
+    public bool jalanOtomatisDiAwal = false;
+    public bool pindahSceneSetelahSelesai = false;
+    public string namaSceneTujuan;
+    public GameObject panelFade;
+    [Header("Sistem Cutscene Timeline")]
+public UnityEngine.Playables.PlayableDirector timelineDirector; // Tarik objek CutsceneManager_Day3 ke sini
+
+    private bool sedangAktifMembaca = false;
 
     void Start()
     {
+        if (jalanOtomatisDiAwal && panelQuest != null) panelQuest.SetActive(false);
+        if (panelFade != null) panelFade.SetActive(false);
+
         if (jalanOtomatisDiAwal)
         {
             MulaiDialog();
         }
-        
-        // Pastikan panel fade mati di awal
-        if (panelFade != null) panelFade.SetActive(false);
     }
 
     public void MulaiDialog()
     {
-        if (panelDialog != null && daftarDialog.Length > 0 && komponenTeksDialog != null)
+        if (panelDialog != null && daftarDialogSistemBaru.Length > 0 && komponenTeksDialog != null)
         {
-            indexSekarang = 0;
+            indeksDialog = 0;
             sedangAktifMembaca = true;
-            komponenTeksDialog.text = daftarDialog[indexSekarang]; 
-            panelDialog.SetActive(true); 
+            panelDialog.SetActive(true);
+            TampilkanKalimat();
         }
+    }
+
+    public void MulaiDialogOtomatis()
+    {
+        MulaiDialog();
     }
 
     void Update()
@@ -49,43 +81,90 @@ public class AutoStartDialogue : MonoBehaviour
         {
             if (Input.GetMouseButtonDown(0) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.E))
             {
-                LanjutAtauSelesaiDialog();
+                LanjutDialog();
             }
         }
     }
 
-    void LanjutAtauSelesaiDialog()
+    void TampilkanKalimat()
     {
-        indexSekarang++; 
-
-        if (indexSekarang < daftarDialog.Length)
+        if (daftarDialogSistemBaru.Length > 0 && indeksDialog < daftarDialogSistemBaru.Length)
         {
-            komponenTeksDialog.text = daftarDialog[indexSekarang];
-        }
-        else
-        {
-            sedangAktifMembaca = false;
-            panelDialog.SetActive(false);
-
-            // CEK: Jika ini dialog terakhir yang harus pindah scene
-            if (pindahSceneSetelahSelesai)
+            // Set Kalimat Dialog
+            komponenTeksDialog.text = daftarDialogSistemBaru[indeksDialog].kalimatDialog;
+            
+            // Set Nama Pembicara secara dinamis tiap baris teks!
+            if (komponenTeksNama != null)
             {
-                MulaiTransisi();
+                string nama = daftarDialogSistemBaru[indeksDialog].namaKarakter;
+                if (!string.IsNullOrEmpty(nama))
+                {
+                    komponenTeksNama.gameObject.SetActive(true);
+                    komponenTeksNama.text = nama;
+                }
+                else
+                {
+                    // Jika dikosongkan (untuk suara batin/narasi anonim), hilangkan kotak namanya
+                    komponenTeksNama.text = "";
+                }
             }
         }
     }
 
-    void MulaiTransisi()
+    void LanjutDialog()
+{
+    indeksDialog++;
+
+    if (indeksDialog < daftarDialogSistemBaru.Length)
+    {
+        TampilkanKalimat();
+    }
+    else
+    {
+        sedangAktifMembaca = false;
+        panelDialog.SetActive(false);
+
+        MunculkanQuestBaruCampus();
+
+        // FITUR BARU: Jika sedang di dalam cutscene Timeline, jalankan lagi Timeline-nya!
+        if (timelineDirector != null)
+        {
+            timelineDirector.Play(); // Resume Timeline ke angle kamera berikutnya
+        }
+
+        if (pindahSceneSetelahSelesai)
+        {
+            MulaiTransisiKeSceneLain();
+        }
+    }
+}
+
+    void MunculkanQuestBaruCampus()
+    {
+        if (panelQuest != null)
+        {
+            if (questTitleText != null && !string.IsNullOrEmpty(judulQuestBaru)) questTitleText.text = judulQuestBaru;
+            if (questDescriptionText != null && !string.IsNullOrEmpty(deskripsiQuestBaru)) questDescriptionText.text = deskripsiQuestBaru;
+
+            panelQuest.SetActive(true);
+
+            if (audioSource != null && suaraNotifikasi != null)
+            {
+                audioSource.PlayOneShot(suaraNotifikasi);
+            }
+        }
+    }
+
+    void MulaiTransisiKeSceneLain()
     {
         if (panelFade != null)
         {
-            panelFade.SetActive(true); // Menyalakan animasi Fade Out
-            // Tunggu 2 detik (memberi waktu animasi fade selesai) baru pindah scene
-            Invoke("GantiScene", 2f); 
+            panelFade.SetActive(true);
+            Invoke("GantiScene", 2f);
         }
         else
         {
-            GantiScene(); // Jika tidak ada panel fade, langsung pindah
+            GantiScene();
         }
     }
 
@@ -93,4 +172,42 @@ public class AutoStartDialogue : MonoBehaviour
     {
         SceneManager.LoadScene(namaSceneTujuan);
     }
+    // FITUR CUTSCENE: Memaksa dialog memunculkan index kalimat tertentu dari Timeline
+public void TriggerDialogSpesifik(int indexKalimat)
+{
+    if (panelDialog != null && daftarDialogSistemBaru.Length > indexKalimat)
+    {
+        sedangAktifMembaca = false; // Matikan input klik player agar timeline yang kendalikan
+        panelDialog.SetActive(true);
+        
+        // Pasang teks kalimat dan nama karakter sesuai index yang diminta
+        komponenTeksDialog.text = daftarDialogSistemBaru[indexKalimat].kalimatDialog;
+        if (komponenTeksNama != null)
+        {
+            komponenTeksNama.text = daftarDialogSistemBaru[indexKalimat].namaKarakter;
+        }
+    }
+}
+
+public void TutupPanelDialogCutscene()
+{
+    if (panelDialog != null) panelDialog.SetActive(false);
+}
+// Fungsi untuk memotong alur Timeline agar player bisa klik-klik dialog dulu
+public void PauseTimelineUntukDialog(int indexMulai)
+{
+    if (timelineDirector != null)
+    {
+        timelineDirector.Pause(); // Menghentikan pergerakan kamera sementara
+    }
+    
+    // Jalankan dialog dari index yang ditentukan
+    if (panelDialog != null && daftarDialogSistemBaru.Length > indexMulai)
+    {
+        indeksDialog = indexMulai;
+        sedangAktifMembaca = true;
+        panelDialog.SetActive(true);
+        TampilkanKalimat();
+    }
+}
 }
