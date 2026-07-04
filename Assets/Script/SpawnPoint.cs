@@ -3,8 +3,15 @@ using UnityEngine.SceneManagement;
 
 public class SpawnPoint : MonoBehaviour
 {
-    [SerializeField] private string indoorSceneName = "DayScene_Indoor";
-    [SerializeField] private string day1SceneName = "Day1";
+    [SerializeField] private string day1SceneName = "Day 1";
+
+    [SerializeField] private string[] indoorSceneNames = new string[]
+    {
+        "DayScene_Indoor",
+        "Interior_Kelas_Baru_day2",
+        "Day 2",
+        "Day 3"
+    };
 
     void OnEnable()
     {
@@ -18,22 +25,23 @@ public class SpawnPoint : MonoBehaviour
 
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // Spawn di DayScene_Indoor
-        if (scene.name == indoorSceneName)
+        foreach (string indoorScene in indoorSceneNames)
         {
-            StartCoroutine(SpawnAfterDelay("SpawnPoint"));
+            if (scene.name == indoorScene)
+            {
+                StartCoroutine(SpawnAfterDelay("SpawnPoint", scene.name));
+                return;
+            }
         }
 
-        // Spawn di Day1 (waktu datang dari MainMenu)
         if (scene.name == day1SceneName)
         {
-            StartCoroutine(SpawnAfterDelay("PlayerSpawnStart"));
+            StartCoroutine(SpawnAfterDelay("PlayerSpawnStart", scene.name));
         }
     }
 
-    System.Collections.IEnumerator SpawnAfterDelay(string spawnTag)
+    System.Collections.IEnumerator SpawnAfterDelay(string spawnTag, string sceneName)
     {
-        // Tunggu 1 frame biar scene selesai load dulu
         yield return null;
 
         GameObject spawnPoint = GameObject.FindGameObjectWithTag(spawnTag);
@@ -45,7 +53,7 @@ public class SpawnPoint : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("SpawnPoint dengan tag '" + spawnTag + "' tidak ditemukan!");
+            Debug.LogWarning("SpawnPoint '" + spawnTag + "' tidak ditemukan di scene: " + sceneName);
         }
     }
 }
