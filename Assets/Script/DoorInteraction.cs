@@ -76,4 +76,12 @@ public class DoorInteraction : MonoBehaviour
         Gizmos.color = Color.cyan;
         Gizmos.DrawWireSphere(transform.position, interactionRange);
     }
+    // Tambahkan fungsi ini di DoorInteraction.cs
+public void TriggerInteractMobile()
+{
+    if (playerInRange)
+    {
+        MasukKampus();
+    }
+}
 }

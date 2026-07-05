@@ -1,7 +1,5 @@
 using UnityEngine;
 
-// Pasang script ini ke GameObject karakter (misalnya "ManUpdate2").
-// GameObject karakter WAJIB punya komponen CharacterController.
 [RequireComponent(typeof(CharacterController))]
 public class PlayerMovement : MonoBehaviour
 {
@@ -12,14 +10,14 @@ public class PlayerMovement : MonoBehaviour
     public float gravity = -9.81f;
 
     [Header("Referensi")]
-    [Tooltip("Kosongkan saja, otomatis ambil Main Camera kalau tidak diisi")]
     public Transform cameraTransform;
-    [Tooltip("Kosongkan saja, otomatis ambil Animator di GameObject ini kalau tidak diisi")]
     public Animator animator;
 
     [Header("Animasi")]
-    [Tooltip("Nama parameter Bool di Animator Controller yang dipakai untuk state lari")]
     public string runParameterName = "IsRunning";
+
+    // Virtual joystick input (diisi otomatis dari JoystickInput script)
+    [HideInInspector] public Vector2 joystickInput = Vector2.zero;
 
     private CharacterController controller;
     private Vector3 velocity;
@@ -35,46 +33,47 @@ public class PlayerMovement : MonoBehaviour
     }
 
     void Update()
+{
+    isGrounded = controller.isGrounded;
+    if (isGrounded && velocity.y < 0f)
+        velocity.y = -2f;
+
+    // Gabungkan input keyboard + joystick
+    float horizontal = Input.GetAxisRaw("Horizontal") + joystickInput.x;
+    float vertical = Input.GetAxisRaw("Vertical") + joystickInput.y;
+
+    horizontal = Mathf.Clamp(horizontal, -1f, 1f);
+    vertical = Mathf.Clamp(vertical, -1f, 1f);
+
+    Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
+    bool isMoving = inputDir.magnitude >= 0.1f;
+
+    if (animator != null)
+        animator.SetBool(runParameterName, isMoving);
+
+    if (isMoving && cameraTransform != null)
     {
-        isGrounded = controller.isGrounded;
-        if (isGrounded && velocity.y < 0f)
-            velocity.y = -2f; // kecil supaya tetap "nempel" tanah
+        Vector3 camForward = cameraTransform.forward;
+        Vector3 camRight = cameraTransform.right;
+        camForward.y = 0f;
+        camRight.y = 0f;
+        camForward.Normalize();
+        camRight.Normalize();
 
-        float horizontal = Input.GetAxisRaw("Horizontal"); // A/D atau panah kiri-kanan
-        float vertical = Input.GetAxisRaw("Vertical");     // W/S atau panah atas-bawah
+        // Pastikan X dan Z keduanya dipakai
+        Vector3 moveDir = (camForward * vertical) + (camRight * horizontal);
+        moveDir.Normalize();
 
-        Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
-        bool isMoving = inputDir.magnitude >= 0.1f;
+        controller.Move(moveDir * moveSpeed * Time.deltaTime);
 
-        if (animator != null)
-            animator.SetBool(runParameterName, isMoving);
-
-        if (isMoving && cameraTransform != null)
+        if (moveDir != Vector3.zero)
         {
-            // Hitung arah gerak relatif terhadap arah hadap kamera (bukan world axis)
-            Vector3 camForward = cameraTransform.forward;
-            Vector3 camRight = cameraTransform.right;
-            camForward.y = 0f;
-            camRight.y = 0f;
-            camForward.Normalize();
-            camRight.Normalize();
-
-            Vector3 moveDir = camForward * inputDir.z + camRight * inputDir.x;
-
-            controller.Move(moveDir * moveSpeed * Time.deltaTime);
-
-            // Putar karakter menghadap arah gerak
             Quaternion targetRotation = Quaternion.LookRotation(moveDir);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
         }
-
-        // Lompat (spasi)
-        if (Input.GetButtonDown("Jump") && isGrounded)
-        {
-            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
-        }
-
-        velocity.y += gravity * Time.deltaTime;
-        controller.Move(velocity * Time.deltaTime);
     }
+
+    velocity.y += gravity * Time.deltaTime;
+    controller.Move(velocity * Time.deltaTime);
+}
 }

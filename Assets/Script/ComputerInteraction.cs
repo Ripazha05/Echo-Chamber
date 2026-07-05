@@ -75,4 +75,14 @@ public class ComputerInteraction : MonoBehaviour
             TutupLayarKomputer();
         }
     }
+
+    // Tambahkan fungsi ini di ComputerInteraction.cs
+public void TriggerInteractMobile()
+{
+    if (playerDekatMeja)
+    {
+        if (panelUIKomputer != null && !panelUIKomputer.activeSelf)
+            BukaLayarKomputer();
+    }
+}
 }

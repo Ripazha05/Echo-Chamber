@@ -34,11 +34,11 @@ public class MainMenuManager : MonoBehaviour
     }
 
     public void OnPlayNewGame()
-    {
-        Debug.Log("Play New Game ditekan");
-        PlayerPrefs.SetInt("HasSaveGame", 1); // contoh marking save
-        SceneManager.LoadScene("Day 1");
-    }
+{
+    Debug.Log("Play New Game ditekan");
+    PlayerPrefs.SetInt("HasSaveGame", 1);
+    FindObjectOfType<FadeTransition>().LoadSceneWithFade("Day 1");
+}
 
     public void OnLoadGame()
     {
